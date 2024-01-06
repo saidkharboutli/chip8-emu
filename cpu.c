@@ -240,7 +240,10 @@ void execute(uint8_t instr_t) {
                     break;
                 case 0x33:
                     /* BCD representation of Vx in memory locations I, I+1, and I+2 */
-                    for(int i = 0; i < 3; i++) mem[I + 4 - (2*i)] = (V[x] / (uint8_t)pow(10, i)) % 10;
+                    //for(int i = 0; i < 3; i++) mem[I + 2 - i)] = (V[x] / (uint8_t)pow(10, i)) % 10;
+                    mem[I+2] = V[x] % 10;
+                    mem[I+1] = (V[x] / 10) % 10;
+                    mem[I] = (V[x] / 100) % 10;
                     break;
                 case 0x55:
                     /* I := { V0, ..., Vx } */

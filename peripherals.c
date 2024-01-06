@@ -48,7 +48,7 @@ uint8_t poll_keys(uint8_t* keys) {
 /* VIDEO DRIVER V1 */
 /* * * * * * * * * * * * * * */
 
-void draw_screen(uint8_t** screen) {
+void draw_screen(uint8_t screen[64][32]) {
     system("clear");
     for(int i = 0; i < 64; i++) {
         for(int j = 0; j < 32; j++) {
