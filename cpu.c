@@ -78,21 +78,23 @@ uint16_t instr_bus;
 /* * * * * * * * * * * * * * */
 
 uint16_t fetch() {
-    return instr_bus = ((uint16_t*)mem)[PC+=2];
+    memcpy(&instr_bus, &mem[PC], 2);
+    PC += 2;
+    return instr_bus;
 }
 
 uint16_t decode(uint16_t instr) {
-    poll_keys(key);
+    //poll_keys(key);
 
     if(DT > 0) DT--;
     if(ST > 0) ST--;
 
-    return instr&0xf000 >> 12;
+    return (instr&0xf000) >> 12;
 }
 
 void execute(uint8_t instr_t) {
-    uint8_t x = instr_bus&0x0F00>>8, y = instr_bus&0x00F0>>4, imm = instr_bus&0x00FF;
-    uint16_t addr = instr_bus&0x0FFF;
+    uint8_t x = (instr_bus&0x0F00)>>8, y = (instr_bus&0x00F0)>>4, imm = (instr_bus&0x00FF);
+    uint16_t addr = (instr_bus&0x0FFF);
 
     switch(instr_t){
         case 0x0:
@@ -280,6 +282,10 @@ int main(int argc, char** argv) {
 
     int exit = read_rom_from_drive(mem, argv[1]);
     
+    for(int i = 0x200; i < exit; i += 2) {
+        printf("%x\n", mem[i]);
+    }
+
     while(PC != exit) {
         execute(
             decode(

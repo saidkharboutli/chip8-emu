@@ -10,18 +10,20 @@
 /* ROM DRIVE */
 /* * * * * * * * * * * * * * */
 
+
+// hello
 int read_rom_from_drive(uint8_t* mem, char* rom_loc) {
     FILE *fp;
-    int i;
+    int i = 0x200;
+    int b;
 
     if(!(fp = fopen(rom_loc, "rb"))) return -1;
-
-    for(i = 0x200; feof(fp) || i < 4096; i++) {
-        mem[i] = (uint8_t)fgetc(fp);
+    while((b=fgetc(fp)) != EOF && i < 4096) {
+        mem[i++] = b;
     }
 
     fclose(fp);
-    return --i;
+    return i;
 }
 
 /* * * * * * * * * * * * * * */

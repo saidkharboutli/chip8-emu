@@ -1,6 +1,6 @@
 CC=gcc
-LDFLAGS=-lm
-CFLAGS=-I.
+LDFLAGS=-lm -g
+CFLAGS=-I. -g
 DEPS=peripherals.h
 
 %.o: %.c $(DEPS)
