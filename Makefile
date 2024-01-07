@@ -1,5 +1,5 @@
 CC=gcc
-LDFLAGS=-lm -g
+LDFLAGS=-lSDL2main -lSDL2 -g
 CFLAGS=-I. -g
 DEPS=peripherals.h
 
@@ -7,4 +7,4 @@ DEPS=peripherals.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 chip8: cpu.o peripherals.o
-	$(CC) $(LDFLAGS) -o chip8 cpu.o peripherals.o
+	$(CC) $(LDFLAGS) -o chip8.out cpu.o peripherals.o

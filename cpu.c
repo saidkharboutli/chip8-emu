@@ -63,7 +63,7 @@ uint8_t V[16];
 uint16_t I;             /* Memory Register */
 
 /* Video Buffer */
-uint8_t screen[64][32];
+uint8_t screen[8][32];
 
 /* Input Buffer */
 uint8_t key[16];
@@ -103,7 +103,7 @@ void execute(uint8_t instr_t) {
                 PC = stack[SP--];
             } else if(instr_bus == 0x00E0) {
                 /* cls / clear display */
-                for (uint8_t i = 0; i < 64; i++) for(int j = 0; j < 32; j++) screen[i][j] = 0;
+                for (uint8_t i = 0; i < 8; i++) for(int j = 0; j < 32; j++) screen[i][j] = 0;
             }
             break;
         case 0x1:
@@ -199,8 +199,8 @@ void execute(uint8_t instr_t) {
         case 0xD:
             /* drw / draw sprite from I at (Vx, Vy)*/
             for(int i = 0; i < instr_bus&0x000F; i++) {
-                if(screen[(V[x] + i) % 64][V[y]] & mem[I+i]) V[15] = 1;
-                screen[(V[x] + i) % 64][V[y]] ^= mem[I+i];
+                if(screen[V[x]][(V[y] + i) % 32] & mem[I+i]) V[15] = 1;
+                screen[V[x]>>3][(V[y] + i) % 32] ^= mem[I+i];
             }
             break;
         case 0xE:
@@ -282,9 +282,17 @@ int main(int argc, char** argv) {
 
     int exit = read_rom_from_drive(mem, argv[1]);
     
-    for(int i = 0x200; i < exit; i += 2) {
-        printf("%x\n", mem[i]);
+    SDL_Window* window;
+    SDL_Renderer* renderer;
+
+    if(init_video(&window, &renderer)) {
+        return;
     }
+
+    // for(int i = 0x200; i < exit; i += 2) {
+    //     printf("%02x %02x\n", mem[i], mem[i+1]);
+    // }
+    // printf("---\n");
 
     while(PC != exit) {
         execute(
@@ -294,4 +302,5 @@ int main(int argc, char** argv) {
         );
     }
 
+    close_video(&window, &renderer);
 }
