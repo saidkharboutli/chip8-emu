@@ -16,6 +16,7 @@
 */
 
 #include "peripherals.h"
+#include <time.h>
 #include <math.h>
 
 /* DATA SPACE */
@@ -198,16 +199,16 @@ void execute(uint8_t instr_t) {
             break;
         case 0xD:
             /* drw / draw sprite from I at (Vx, Vy)*/
-            for(int i = 0; i < instr_bus&0x000F; i++) {
-                if(screen[V[x]][(V[y] + i) % 32] & mem[I+i]) V[15] = 1;
+            for(int i = 0; i < (instr_bus&0x000F); i++) {
+                if(screen[V[x]>>3][(V[y] + i) % 32] & mem[I+i]) V[15] = 1;
                 screen[V[x]>>3][(V[y] + i) % 32] ^= mem[I+i];
             }
             break;
         case 0xE:
-            if(instr_bus&0x00ff == 0x9E) {
+            if((instr_bus&0x00ff) == 0x9E) {
                 /* skp / skip next instr if key Vx is pressed */
                 if(key[V[x]]) PC += 2;
-            } else if(instr_bus&0x00ff == 0xA1) {
+            } else if((instr_bus&0x00ff) == 0xA1) {
                 /* sknp / skip next instr if key Vx is not pressed */
                 if(!key[V[x]]) PC += 2;
             }
@@ -258,8 +259,6 @@ void execute(uint8_t instr_t) {
             }
             break;
     }
-
-    draw_screen(screen);
 }
 
 /* * * * * * * * * * * * * * */
@@ -282,25 +281,28 @@ int main(int argc, char** argv) {
 
     int exit = read_rom_from_drive(mem, argv[1]);
     
-    SDL_Window* window;
-    SDL_Renderer* renderer;
+    SDL_Window *window;
+    SDL_Renderer *renderer;
 
-    if(init_video(&window, &renderer)) {
-        return;
-    }
-
-    // for(int i = 0x200; i < exit; i += 2) {
-    //     printf("%02x %02x\n", mem[i], mem[i+1]);
-    // }
-    // printf("---\n");
-
+    init_video(&window, &renderer);
+    
     while(PC != exit) {
         execute(
             decode(
                 fetch()
             )
         );
+
+        SDL_Event event;
+        if (SDL_PollEvent(&event)){
+            if(event.type == SDL_QUIT) break;
+        }
+        draw_screen(screen, renderer);
+
+        struct timespec ts;
+        ts.tv_nsec = (1666 % 1000) * 1000;
+        nanosleep(&ts, &ts);
     }
 
-    close_video(&window, &renderer);
+    close_video(window, renderer);
 }

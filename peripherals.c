@@ -12,8 +12,6 @@
 /* ROM DRIVE */
 /* * * * * * * * * * * * * * */
 
-
-// hello
 int read_rom_from_drive(uint8_t* mem, char* rom_loc) {
     FILE *fp;
     int i = 0x200;
@@ -54,47 +52,52 @@ uint8_t poll_keys(uint8_t* keys) {
 /* VIDEO DRIVER */
 /* * * * * * * * * * * * * * */
 
-int init_video(SDL_Window* window, SDL_Renderer* renderer) {
+int init_video(SDL_Window** window, SDL_Renderer** renderer) {
     if(SDL_Init(SDL_INIT_VIDEO)) {
         printf("SDL_Init Error: %s\n", SDL_GetError());
         return 1;
     }
 
-    window = SDL_CreateWindow("CHIP8 EMULATOR", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 320, 0);
+    *window = SDL_CreateWindow("CHIP8 EMULATOR", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 320, 0);
     if(!window) {
         printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
         return 1;
     }
 
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (renderer == NULL) {
+    *renderer = SDL_CreateRenderer(*window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
         printf("SDL_CreateRenderer Error: %s\n", SDL_GetError());
         return 1;
     }
 
-    if(SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255)
-        || SDL_RenderClear(renderer)) {
-            printf("SDL_Render Error: %s\n", SDL_GetError());
-            return 1;
-    }
-
-    SDL_RenderPresent(renderer);
-
     return 0;
 }
 
-void draw_screen(uint8_t screen[8][32]) {
-    system("clear");
+void draw_screen(uint8_t screen[8][32], SDL_Renderer* renderer) {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
     for(int i = 0; i < 32; i++) {
         for(int j = 0; j < 8; j++) {
             for(int k = 0; k < 8; k++) {
-                if(screen[j][i] & (0b10000000>>k)) printf("#");
-                else printf(" ");
+                if(screen[j][i] & (0b10000000 >> k)) {
+                    SDL_Rect rect;
+                    rect.x = ((j * 8) + k) * 10;
+                    rect.y = i * 10;
+                    rect.w = 10;
+                    rect.h = 10;
+                    SDL_RenderFillRect(renderer, &rect);
+                    // printf("%d", (screen[j][i] & (0b10000000 >> k)) >> (7 - k));
+                }
+                // else printf(" ");
+                // printf(" ");
             }
         }
-        printf("\n");
+        // printf("\n");
     }
-    printf("---\n");
+    // printf("---");
+    SDL_RenderPresent(renderer);
 }
 
 int close_video(SDL_Window* window, SDL_Renderer* renderer) {
