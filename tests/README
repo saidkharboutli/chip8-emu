@@ -1,1 +1,5 @@
- 
+# Credits
+
+Tests were pulled from Timendus' Chip8 Test Suite. The repo can be found [here](https://github.com/Timendus/chip8-test-suite).
+
+Thanks for providing these tests, @Timendus :)
