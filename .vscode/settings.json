@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "cstdint": "c"
+        "cstdint": "c",
+        "any": "c",
+        "complex": "c"
     }
 }

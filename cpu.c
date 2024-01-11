@@ -17,7 +17,6 @@
 
 #include "peripherals.h"
 #include <time.h>
-#include <math.h>
 
 /* DATA SPACE */
 /* * * * * * * * * * * * * * */
@@ -54,7 +53,7 @@ uint16_t stack[16];     /* Stack */
 
 /* Pseudo-Registers */
 uint16_t PC = 0x200;    /* Program Counter */
-uint8_t SP;             /* Stack Pointer */
+uint8_t SP = 0x0;         /* Stack Pointer */
 
 /* Special Purpose Registers */
 uint8_t DT, ST;         /* Delay Timer, Sound Timer */
@@ -79,29 +78,30 @@ uint16_t instr_bus;
 /* * * * * * * * * * * * * * */
 
 uint16_t fetch() {
-    memcpy(&instr_bus, &mem[PC], 2);
+    instr_bus = (mem[PC]<<8) | mem[PC+1];
     PC += 2;
     return instr_bus;
 }
 
 uint16_t decode(uint16_t instr) {
-    //poll_keys(key);
-
     if(DT > 0) DT--;
-    if(ST > 0) ST--;
+    if(ST > 0){
+        ST--;
+    }
 
     return (instr&0xf000) >> 12;
 }
 
 void execute(uint8_t instr_t) {
     uint8_t x = (instr_bus&0x0F00)>>8, y = (instr_bus&0x00F0)>>4, imm = (instr_bus&0x00FF);
+    uint8_t prev = V[x];
     uint16_t addr = (instr_bus&0x0FFF);
 
     switch(instr_t){
         case 0x0:
             if(instr_bus == 0x00EE) {
                 /* ret / exit subroutine */
-                PC = stack[SP--];
+                PC = stack[--SP];
             } else if(instr_bus == 0x00E0) {
                 /* cls / clear display */
                 for (uint8_t i = 0; i < 8; i++) for(int j = 0; j < 32; j++) screen[i][j] = 0;
@@ -113,15 +113,16 @@ void execute(uint8_t instr_t) {
             break;
         case 0x2:
             /* jal / call NNN */
-            stack[++SP] = PC;
+            stack[SP++] = PC;
+            PC = addr;
             break;
         case 0x3:
             /* snei / if Vx != kk then skip next instr */
-            if(V[x] != imm) PC += 2;
+            if(V[x] == imm) PC += 2;
             break;
         case 0x4:
             /* seqi / if Vx == kk then skip next instr */
-            if(V[x] == imm) PC += 2;
+            if(V[x] != imm) PC += 2;
             break;
         case 0x5:
             /* sne / if Vx != Vy then skip next instr */
@@ -156,28 +157,28 @@ void execute(uint8_t instr_t) {
                     break;
                 case 0x4:
                     /* add / Vx += Vy */
-                    V[15] = (V[x] + V[y]) > 255;
                     V[x] += V[y];
+                    V[0xF] = ((uint16_t)prev + (uint16_t)V[y]) > 255;
                     break;
                 case 0x5:
                     /* sub / Vx -= Vy */
-                    V[15] = V[x] > V[y];
                     V[x] = V[x] - V[y];
+                    V[0xF] = prev >= V[y];
                     break;
                 case 0x6:
                     /* shr / Vx >>= Vy */
-                    V[15] = 0b1&V[x];
-                    V[x] >>= V[y];
+                    V[x] >>= 1; // V[y];
+                    V[0xF] = 0b1&prev;
                     break;
                 case 0x7:
                     /* subn / Vx =- Vy */
-                    V[15] = V[y] > V[x];
                     V[x] = V[y] - V[x];
+                    V[0xF] = V[y] >= prev;
                     break;
                 case 0xE:
                     /* shl / Vx <<= Vy */
-                    V[15] = (0b10000000&V[x]) >> 7;
-                    V[x] <<= V[y];
+                    V[x] <<= 1; // V[y];
+                    V[0xF] = (0b10000000&prev) >> 7;
                     break;
             }
             break;
@@ -199,9 +200,22 @@ void execute(uint8_t instr_t) {
             break;
         case 0xD:
             /* drw / draw sprite from I at (Vx, Vy)*/
+            V[0xF] = 0;
+
             for(int i = 0; i < (instr_bus&0x000F); i++) {
-                if(screen[V[x]>>3][(V[y] + i) % 32] & mem[I+i]) V[15] = 1;
-                screen[V[x]>>3][(V[y] + i) % 32] ^= mem[I+i];
+                int index_x, index_y, offset;
+                index_x = V[x]>>3;          // which byte to access
+                index_y = (V[y] + i) % 32;  // height of byte
+                offset = 8-(V[x]%8);        // offset of wrapped byte
+
+                // Probably could speed this up
+                if((screen[index_x][index_y] & (mem[I+i]>>(V[x]%8))) ||
+                    (screen[(index_x+1)%8][index_y] & (mem[I+i]<<offset))) {
+                        V[0xF] = 1;
+                }
+
+                screen[index_x][index_y] ^= (mem[I+i]>>(V[x]%8));
+                screen[(index_x+1)%8][index_y] ^= (mem[I+i]<<offset);
             }
             break;
         case 0xE:
@@ -221,9 +235,11 @@ void execute(uint8_t instr_t) {
                     break;
                 case 0x0A:
                     /* Vx = key (block) */
-                    int i = -1;
-                    while(!key[++i%16]);
-                    V[x] = i%16;
+                    int i;
+                    for(i = 0; i < 16; i++) {
+                        if(key[i]) break;
+                    }
+                    if(!key[i%16]) PC -= 2;
                     break;
                 case 0x15:
                     /* DT := Vx */
@@ -232,6 +248,7 @@ void execute(uint8_t instr_t) {
                 case 0x18:
                     /* ST := Vx */
                     ST = V[x];
+                    //play_beep();
                     break;
                 case 0x1E:
                     /* I += Vx */
@@ -250,11 +267,11 @@ void execute(uint8_t instr_t) {
                     break;
                 case 0x55:
                     /* I := { V0, ..., Vx } */
-                    for(int i = 0; i < x; i++) mem[I + (2*i)] = V[x];
+                    for(int i = 0; i <= x; i++) mem[I+i] = V[i];
                     break;
                 case 0x65:
                     /* { V0, ..., Vx } := I */
-                    for(int i = 0; i < x; i++) V[x] = mem[I + (2*i)];
+                    for(int i = 0; i <= x; i++) V[i] = mem[I+i];
                     break;
             }
             break;
@@ -280,11 +297,12 @@ int main(int argc, char** argv) {
     }
 
     int exit = read_rom_from_drive(mem, argv[1]);
-    
+
     SDL_Window *window;
     SDL_Renderer *renderer;
 
     init_video(&window, &renderer);
+    init_audio();
     
     while(PC != exit) {
         execute(
@@ -292,17 +310,19 @@ int main(int argc, char** argv) {
                 fetch()
             )
         );
-
         SDL_Event event;
         if (SDL_PollEvent(&event)){
             if(event.type == SDL_QUIT) break;
+            if(event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) poll_keys(key, &event);
         }
+        
         draw_screen(screen, renderer);
 
         struct timespec ts;
-        ts.tv_nsec = (1666 % 1000) * 1000;
+        ts.tv_nsec = 2000000 / 5;
         nanosleep(&ts, &ts);
     }
 
     close_video(window, renderer);
+    close_audio();
 }

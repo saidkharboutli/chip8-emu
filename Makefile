@@ -1,5 +1,5 @@
 CC=gcc
-LDFLAGS=-lSDL2main -lSDL2 -g
+LDFLAGS=-lSDL2main -lSDL2 -lm -g
 CFLAGS=-I. -Wall -g
 DEPS=peripherals.h
 
