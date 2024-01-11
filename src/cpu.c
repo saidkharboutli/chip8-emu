@@ -85,7 +85,7 @@ uint16_t fetch() {
 
 uint16_t decode(uint16_t instr) {
     if(DT > 0) DT--;
-    if(ST > 0){
+    if(ST > 0) {
         ST--;
     }
 
@@ -248,7 +248,7 @@ void execute(uint8_t instr_t) {
                 case 0x18:
                     /* ST := Vx */
                     ST = V[x];
-                    //play_beep();
+                    // play_beep();
                     break;
                 case 0x1E:
                     /* I += Vx */
@@ -302,7 +302,7 @@ int main(int argc, char** argv) {
     SDL_Renderer *renderer;
 
     init_video(&window, &renderer);
-    init_audio();
+    // init_audio();
     
     while(PC != exit) {
         execute(
@@ -324,5 +324,5 @@ int main(int argc, char** argv) {
     }
 
     close_video(window, renderer);
-    close_audio();
+    // close_audio();
 }
