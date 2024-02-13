@@ -84,10 +84,10 @@ uint16_t fetch() {
 }
 
 uint16_t decode(uint16_t instr) {
-    if(DT > 0) DT--;
-    if(ST > 0) {
+    if(DT > 0)
+        DT--;
+    if(ST > 0)
         ST--;
-    }
 
     return (instr&0xf000) >> 12;
 }

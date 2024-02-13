@@ -1,5 +1,7 @@
 #include "peripherals.h"
 
+#define SCALE 16
+
 /**
  * @file peripherals.c
  * @author Said Kharboutli (said.kharboutli5@gmail.com)
@@ -138,7 +140,7 @@ int init_video(SDL_Window** window, SDL_Renderer** renderer) {
         return 1;
     }
 
-    *window = SDL_CreateWindow("CHIP8 EMULATOR", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 320, 0);
+    *window = SDL_CreateWindow("CHIP8 EMULATOR", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 64 * SCALE, 32 * SCALE, 0);
     if(!window) {
         printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
         return 1;
@@ -163,10 +165,10 @@ void draw_screen(uint8_t screen[8][32], SDL_Renderer* renderer) {
             for(int k = 0; k < 8; k++) {
                 if(screen[j][i] & (0b10000000 >> k)) {
                     SDL_Rect rect;
-                    rect.x = ((j * 8) + k) * 10;
-                    rect.y = i * 10;
-                    rect.w = 10;
-                    rect.h = 10;
+                    rect.x = ((j * 8) + k) * SCALE;
+                    rect.y = i * SCALE;
+                    rect.w = SCALE;
+                    rect.h = SCALE;
                     SDL_RenderFillRect(renderer, &rect);
                     // O avg = 32 * 64, no larger than any other implementation.
                 }
